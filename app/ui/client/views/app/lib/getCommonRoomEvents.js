@@ -224,20 +224,31 @@ export const getCommonRoomEvents = () => ({
 		}
 	},
 	'click .js-actionButton-respondWithMessage'(event, instance) {
-		const { rid } = instance.data;
+		const { rid, mainMessage } = instance.data;
 		const msg = event.currentTarget.value;
 		if (!msg) {
 			return;
 		}
 
-		const { input } = chatMessages[rid];
+		let cmid = rid;
+		if (mainMessage) {
+			cmid += `-${mainMessage._id}`;
+		}
+
+		const { input } = chatMessages[cmid];
 		input.value = msg;
 		input.focus();
 	},
 	async 'click .js-actionButton-respondWithQuotedMessage'(event, instance) {
-		const { rid } = instance.data;
+		const { rid, mainMessage } = instance.data;
 		const { id: msgId } = event.currentTarget;
-		const { $input } = chatMessages[rid];
+
+		let cmid = rid;
+		if (mainMessage) {
+			cmid += `-${mainMessage._id}`;
+		}
+
+		const { $input } = chatMessages[cmid];
 
 		if (!msgId) {
 			return;
@@ -251,11 +262,15 @@ export const getCommonRoomEvents = () => ({
 		$input.focus().data('mention-user', false).data('reply', messages).trigger('dataChange');
 	},
 	async 'click .js-actionButton-sendMessage'(event, instance) {
-		const { rid } = instance.data;
+		const { rid, mainMessage } = instance.data;
 		const msg = event.currentTarget.value;
 		let msgObject = { _id: Random.id(), rid, msg };
 		if (!msg) {
 			return;
+		}
+
+		if (mainMessage) {
+			msgObject.tmid = mainMessage._id;
 		}
 
 		msgObject = await onClientBeforeSendMessage(msgObject);
@@ -264,7 +279,7 @@ export const getCommonRoomEvents = () => ({
 		if (_chatMessages && (await _chatMessages.processSlashCommand(msgObject))) {
 			return;
 		}
-
+		
 		await callWithErrorHandling('sendMessage', msgObject);
 	},
 	'click .message-actions__menu'(e, template) {
